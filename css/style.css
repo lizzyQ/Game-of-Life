@@ -1,0 +1,36 @@
+body{
+  background:#fefefe;
+}
+#gameBoard{
+  width:614px;
+  height:414px;
+  margin:8%;
+  background:#010402;
+  border:7px solid #65c0b7;
+  border-radius:10px;
+  position:relative;
+}
+#gameBoard canvas{
+  position:absolute;
+  top:0;
+  left:0;
+}
+#controlBoard{
+  position:fixed;
+  top:0;
+  right:0;
+  width:200px;
+  height:100vh;
+  box-sizing:border-box;
+  padding-top:40px;
+  background:#65c0b7;
+}
+#controlBoard p{
+  margin:20px 0;
+}
+#btnGroup{
+  padding:0 15px;
+}
+#btnGroup button:hover{
+  cursor:pointer;
+}

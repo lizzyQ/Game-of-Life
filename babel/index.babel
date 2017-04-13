@@ -1,0 +1,290 @@
+const ControlPanel= (props)=>{
+  return(
+        <div id="controlBoard" className="text-center">
+               <h3>Game of life</h3>
+               <p> 
+                  <strong>Generation:</strong>
+                  <span> {props.generation} </span>
+               </p>
+               <div id="btnGroup">
+                   <button className="btn btn-outline-primary btn-block" 
+                     onClick={() => props.onRun()}>Run</button>
+                   <button className="btn btn-outline-warning btn-block" 
+                     onClick={() => props.onPause()}>Pause</button>
+                   <button className="btn btn-outline-secondary btn-block" 
+                     onClick={() => props.onClear()}>Clear</button>
+                </div>
+               <p><a target="_blank" href="https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life">More about the game</a></p>
+               <p>Click to add cells at any time. Enjoy the pattern!</p>
+          </div>
+  );
+}
+  
+class GridBoard extends React.Component{
+  constructor(props){
+    super(props);
+    this.state={
+      matrix:[],
+      ctx:null
+    };
+  }
+  
+  componentDidMount(){
+   this.drawLife();
+  }
+  
+ drawLife(){
+    let  matrix = this.props.matrix,// matrix = map //what's difference??
+         w = this.props.grid.width,
+         h = this.props.grid.height,
+         cube = this.props.grid.cellSize,
+         ctx = this.refs.grid.getContext("2d");
+    
+   ctx.fillStyle = 'lime';
+   for(let row=0; row<matrix.length; row++){
+      for(let col=0; col<matrix[row].length; col++){
+         
+         if(matrix[row][col]){
+            ctx.fillRect(row*cube, col*cube, cube-1, cube-1);
+          }else{
+            ctx.clearRect(row*cube, col*cube, cube-1, cube-1);
+          }  
+      }
+    }
+  
+   this.setState({
+             ctx:ctx,
+             matrix:matrix
+                 });
+}
+  
+ cleanMap(map){
+   let  w = this.props.grid.width,
+        h = this.props.grid.height,
+        cube = this.props.grid.cellSize,
+        ctx = this.state.ctx;
+     ctx.clearRect(0, 0, w, h); 
+     this.setState({matrix:map}); 
+ }
+  
+ handleClick(e){  
+   const box = document.getElementById("gameBoard"),
+         matrix = this.state.matrix,
+         cube = this.props.grid.cellSize,
+         ctx = this.state.ctx;
+         
+   let  cubex = Math.round( (e.pageX - box.offsetTop - 10)/10),
+        cubey = Math.round( (e.pageY - box.offsetLeft- 10)/10);
+   
+   ctx.fillStyle = 'lime';
+   
+   if(matrix[cubex][cubey]){
+      matrix[cubex][cubey] = false; 
+     ctx.clearRect(cubex*cube, cubey*cube, cube-1, cube-1);
+   }else{ 
+     matrix[cubex][cubey] = true;
+     ctx.fillRect(cubex*cube, cubey*cube, cube-1, cube-1);
+   }
+   
+    this.setState({
+        matrix: matrix,
+    }, function(){
+      this.props.newMatrix(this.state.matrix); 
+    });
+  }
+  
+  render(){  
+    return (
+            <div id="gameBoard">
+                   <canvas 
+                     ref="grid"
+                     width={this.props.grid.width}
+                     height={this.props.grid.height}
+                     onClick={this.handleClick.bind(this)}
+                    ></canvas>
+            </div>
+    );
+  }
+}
+
+class App extends React.Component{
+  constructor(){
+    super();
+    this.state = {
+      generation: 0,
+      grid: {
+           width: 600,
+           height: 400,
+           cellSize: 10,
+       },
+      matrix:[],
+      neighborsMap:[],
+    }
+  }
+  
+ componentWillMount(){
+   this.setupArrays(); 
+ }
+   
+ setupArrays(){ 
+    let lifeMap = [];
+    let neighboursMap = [];
+    let w = this.state.grid.width / this.state.grid.cellSize;
+    let h = this.state.grid.height / this.state.grid.cellSize;
+    //let w=6, h=4;
+    for(let row = 0; row < w; row += 1){
+         lifeMap.push([]);
+         neighboursMap.push([]); 
+         for(let col = 0; col < h; col += 1){
+             lifeMap[row][col] = Boolean( Math.round( Math.random() ) );
+             // make the game more fun is connect the conner so every cell has 8 neighbors
+             if(row == 0 && col == 0 ){
+             //top left coner
+                neighboursMap[row][col] = { ns: [ [row, col+1], [row+1, col], [row+1, col+1] ] };
+             }else if(row==0 && col == h-1){
+             //top right coner
+                neighboursMap[row][col] = { ns: [ [row, col-1], [row+1, col], [row+1, col-1] ] };
+             }else if(row==w-1 && col == 0){
+             //bottom left coner
+                neighboursMap[row][col] = { ns: [ [row, col+1], [row-1, col],[row-1, col+1] ] };
+             }else if(row==w-1 && col == h-1){
+             // bottom right coner
+                neighboursMap[row][col] = { ns: [ [row, col-1], [row-1, col],[row-1, col-1] ] };
+             }else if(row == 0 ){
+             //top line
+                neighboursMap[row][col] = { ns: [[row, col-1], [row, col+1], [row+1, col-1], [row+1, col], [row+1, col+1]] } ;
+             }else if(row == w-1 ){
+             //bottom line
+                neighboursMap[row][col] = { ns: [[row, col-1], [row, col+1], [row-1, col-1], [row-1, col], [row-1, col+1]] };
+            }else if(col == 0){
+            //very left line
+                neighboursMap[row][col] = { ns: [[row-1, col], [row-1, col+1], [row, col+1], [row+1, col], [row+1, col+1]] };
+           }else if(col == h-1 ){
+            //very right line
+                neighboursMap[row][col] = { ns: [[row, col-1], [row-1, col-1], [row+1, col-1], [row+1, col], [row-1, col] ] };
+           }else{  
+               neighboursMap[row][col] = { ns:[ [row-1, col-1], [row-1, col], [row-1, col+1], [row, col-1], [row, col+1], [row+1, col-1], [row+1, col], [row+1, col+1] ] };
+          } 
+               
+     }
+   } 
+   this.setState({
+                  matrix: lifeMap,
+                  neighborsMap: neighboursMap
+   });
+ 
+ }
+   
+ componentDidMount(){
+   this.startLife();
+  }
+  
+ startLife() {
+    let newLifes  = setInterval(this.cycleLife.bind(this), 500);
+    this.setState({ newLifes: newLifes });     
+} 
+  
+cycleLife(){
+    let matrix = this.state.matrix;
+    let neighbours = this.state.neighborsMap;
+    //let newGrid = this.state.matrix.slice();
+   let newGrid=[];
+   let gen = this.state.generation; 
+   let lns = 0;
+  
+   for(let row=0; row<matrix.length; row++){
+      newGrid.push([]);
+      for(let col=0; col<matrix[row].length; col++){
+             //neighbours[row][col].ns is a nested array [3,5],[4,7]
+        
+             let liveNs = neighbours[row][col].ns.map(ele=>{
+                        return matrix[ele[0]][ele[1]];    
+                 });
+            liveNs = liveNs.filter(val=>{ return val===true; });
+            lns = liveNs.length;
+            newGrid[row][col] = lns;
+            
+          if(matrix[row][col]===true){
+               
+               if(newGrid[row][col] < 2 || newGrid[row][col] > 3){ newGrid[row][col] = false; } 
+               if(newGrid[row][col] == 2 || newGrid[row][col] == 3){ newGrid[row][col] = true; }
+               
+          }else{
+            //dead cell with exactly three live neighbours
+              if(newGrid[row][col] == 3){ 
+                 newGrid[row][col] = true; 
+               }else{
+                 newGrid[row][col] = false;
+              }   
+          } 
+      }
+    } 
+    gen += 1;
+    
+   this.setState({ 
+                   matrix: newGrid, 
+                   generation:gen 
+                 },function(){
+     this.refs.canvasMap.drawLife(this.state.matrix);
+   });   
+   
+  
+ }
+
+ onRun(){
+   this.startLife(); 
+ } 
+  
+ onPause(){
+   clearInterval(this.state.newLifes); 
+ } 
+  
+  onClear(){
+    clearInterval(this.state.newLifes);
+    let matrix = this.state.matrix;
+    
+    let cleanMap = matrix.map(ele=>{
+      return ele.map(element =>{
+           element = false;
+           return element;
+      });
+    });
+
+    this.setState({
+       generation: 0,
+       matrix:cleanMap
+    }, function(){
+       this.refs.canvasMap.cleanMap(this.state.matrix);  
+    }); 
+    
+  }
+  
+ handleNewMatrix(newMatrix){
+    this.setState({
+       matrix: newMatrix,
+    });   
+  }
+  
+ render(){
+    return (
+        <div>
+           <GridBoard 
+             ref="canvasMap"
+             grid={this.state.grid} 
+             matrix={this.state.matrix}
+             newMatrix={this.handleNewMatrix.bind(this)}
+            />
+           <ControlPanel 
+             onRun={this.onRun.bind(this)}
+             onPause={this.onPause.bind(this)}
+             onClear={this.onClear.bind(this)}
+             generation={this.state.generation}/>
+        </div>
+    );
+  }
+}
+  
+ReactDOM.render(<App />, document.getElementById("container"));
+
+
+ 
